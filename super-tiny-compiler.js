@@ -121,7 +121,82 @@ function parser(tokens) {
 
 function traverser(ast, visitor) {
     
+    function traverseArray(array, parent) {
+        array.forEach(function(child) {
+          traverseNode(child, parent);
+        });
+    }
+
+    function traverseNode(node, parent) {
+        
+        var method = visitor[node.type];
+
+        if (method) {
+            method(node, parent);
+        }
+
+        switch(node.type) {
+            case 'Program':
+                traverseArray(node.body, node);
+                break;
+            case 'CallExpression':
+                traverseArray(node.params, node);
+                break;
+            case 'NumberLiteral':
+                break;
+            default:
+                throw new TypeError(node.type);
+        }
+    }
+    traverseNode(ast, null);
 }
+
+function transformer(ast) {
+    // init
+    var nextAst = {
+        type: 'Program',
+        body: []
+    };
+    
+    // 將 ast 的 context 指向 nextAst 的 body
+    ast._context = nextAst.body;
+
+    // visitor 實作
+    var visitor = {
+        NumberLiteral: function (node, parent) {
+            parent._context.push({
+                type: 'NumberLiteral',
+                value: node.value
+            });
+        },
+        CallExpression: function (node, parent) {
+            var expression = {
+                type: 'CallExpression',
+                callee: {
+                    type: 'Itentifier',
+                    name: node.name
+                },
+                arguments: []
+            };
+
+            node._context = expression.arguments;
+            // the top level `CallExpressions` in JavaScript 
+            // are actually statements.
+            if (parent.type !== 'CallExpression') {
+                expression = {
+                      type: 'ExpressionStatement',
+                      expression: expression
+                }
+            }
+            parent._context.push(expression);
+        }
+    }
+
+    traverser(ast, visitor);
+    
+    return nextAst;
+}
+
 
 function compiler(input) {
     console.log('Input: ', input);
@@ -131,7 +206,9 @@ function compiler(input) {
     var ast = parser(tokens);
     console.log("AST:");
     console.log(ast);
-    console.log(ast.body[0].params);
+    var nextAst = transformer(ast);
+    console.log('nextAst: ');
+    console.log(nextAst);
 }
 
 compiler(fakeInput);
