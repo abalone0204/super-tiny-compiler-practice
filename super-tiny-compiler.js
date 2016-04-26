@@ -1,7 +1,3 @@
-var input = '(add 22 (subtract 43 2))';
-var fakeInput = '(add (add 2 1) (subtract 1 2))';
-
-
 function lexer(input) {
     var current = 0;
     var tokens = [];
@@ -152,16 +148,14 @@ function traverser(ast, visitor) {
 }
 
 function transformer(ast) {
-    // init
+
     var nextAst = {
         type: 'Program',
         body: []
     };
     
-    // 將 ast 的 context 指向 nextAst 的 body
     ast._context = nextAst.body;
 
-    // visitor 實作
     var visitor = {
         NumberLiteral: function (node, parent) {
             parent._context.push({
@@ -229,4 +223,3 @@ function compiler(input) {
     var output = codeGenerator(nextAst);
     return output;
 }
-console.log(compiler(fakeInput));
