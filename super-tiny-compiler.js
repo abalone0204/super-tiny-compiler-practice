@@ -173,7 +173,7 @@ function transformer(ast) {
             var expression = {
                 type: 'CallExpression',
                 callee: {
-                    type: 'Itentifier',
+                    type: 'Identifier',
                     name: node.name
                 },
                 arguments: []
@@ -193,22 +193,40 @@ function transformer(ast) {
     }
 
     traverser(ast, visitor);
-    
+
     return nextAst;
 }
 
-
-function compiler(input) {
-    console.log('Input: ', input);
-    var tokens = lexer(input);
-    console.log(tokens.length);
-    console.log('Tokens:', tokens);
-    var ast = parser(tokens);
-    console.log("AST:");
-    console.log(ast);
-    var nextAst = transformer(ast);
-    console.log('nextAst: ');
-    console.log(nextAst);
+function codeGenerator(node) {
+    switch(node.type) {
+        case 'Program':
+            return node.body.map(codeGenerator)
+                .join('\n');
+        case 'ExpressionStatement':
+            return (
+                codeGenerator(node.expression) + ';'
+                )
+        case 'CallExpression':
+            return (
+                codeGenerator(node.callee)+
+                '('+
+                node.arguments.map(codeGenerator).join(', ')+
+                ')' 
+            );
+        case 'Identifier':
+            return node.name;
+        case 'NumberLiteral':
+            return node.value;
+        default:
+            throw new TypeError(node.type);
+    }
 }
 
-compiler(fakeInput);
+function compiler(input) {
+    var tokens = lexer(input);
+    var ast = parser(tokens);
+    var nextAst = transformer(ast);
+    var output = codeGenerator(nextAst);
+    return output;
+}
+console.log(compiler(fakeInput));
